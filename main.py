@@ -22,6 +22,9 @@ def main():
 
     while run:
         clock.tick(FPS)
+        if game.winner() is not None:
+            print('\nthe great winner is '+game.winner())
+            run = False
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False

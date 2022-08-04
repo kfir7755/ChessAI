@@ -6,6 +6,7 @@ class Board:
     def __init__(self):
         self.board = []
         self.selected_piece = None
+        self.fallen_king = None
 
     def __getitem__(self, board):
         return self.board
@@ -16,6 +17,13 @@ class Board:
             soldier.row, soldier.col = next_row, next_col
             if isinstance(soldier, Pawn):
                 soldier.is_first_move = False
+                if soldier.color == 'white' and next_row == 0:
+                    self.board[cur_row][cur_col] = Queen(next_row, next_col, 'white', 'white_queen.png')
+                if soldier.color == 'black' and next_row == 7:
+                    self.board[cur_row][cur_col] = Queen(next_row, next_col, 'black', 'black_queen.png')
+            if self.board[next_row][next_col] is not None:
+                if isinstance(self.board[next_row][next_col], King):
+                    self.fallen_king = self.board[next_row][next_col].color
             self.board[next_row][next_col], self.board[cur_row][cur_col] = self.board[cur_row][cur_col], None
             return True
         return False
@@ -25,7 +33,7 @@ class Board:
         win.fill(GREEN)
         for row in range(N):
             for col in range(row % 2, N, 2):
-                pygame.draw.rect(win, WHITE, (row * SQUARE_SIZE, col * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE))
+                pygame.draw.rect(win, WHITE, (col * SQUARE_SIZE, row * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE))
 
     def draw_pieces(self, win):
         for row in range(N):

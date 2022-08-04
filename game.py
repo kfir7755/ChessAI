@@ -12,6 +12,14 @@ class Game:
         self.win = win
         self.moves = []
 
+    def winner(self):
+        if self.board.fallen_king is not None:
+            if self.board.fallen_king is 'black':
+                return 'white'
+            else:
+                return 'black'
+        return None
+
     def update(self):
         self.board.draw_squares(self.win)
         if len(self.moves) > 0:
@@ -19,22 +27,6 @@ class Game:
         self.board.draw_pieces(self.win)
         pygame.display.update()
 
-    # def select(self, row, col):
-    #     if self.selected is not None:
-    #         cur_row, cur_col = self.selected
-    #         result = self.board.move(cur_row, cur_col, row, col, self.moves)
-    #         self.selected = None
-    #         if not result:
-    #             self.select(row, col)
-    #         else:
-    #             self.moves = []
-    #     else:
-    #         self.selected = row, col
-    #         if self.board[row][col] is not None:
-    #             soldier = self.board.board[row][col]
-    #             self.moves = soldier.possible_moves(self.board.board)
-
-    # self.turn = 'black' if self.turn is 'white' else 'white'
     def select(self, row, col):
         if self.selected is not None:
             cur_row, cur_col = self.selected
@@ -42,13 +34,13 @@ class Game:
             self.selected = None
             if not result:
                 self.select(row, col)
-            else:
+            elif result:
                 self.moves = []
                 temp = self.turn
                 self.turn = 'black' if temp == 'white' else 'white'
         else:
             self.selected = row, col
-            if self.board[row][col] is not None:
+            if self.board.board[row][col] is not None:
                 if self.board.board[row][col].color == self.turn:
                     soldier = self.board.board[row][col]
                     self.moves = soldier.possible_moves(self.board.board)
