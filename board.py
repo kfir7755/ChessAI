@@ -1,8 +1,8 @@
 from constants import *
 from soldiers import *
-import os
 
 
+# remove
 class Square:
     def __init__(self, x, y, soldier, color, soldier_png):
         self.x = x
