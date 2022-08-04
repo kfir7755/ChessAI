@@ -2,23 +2,6 @@ from constants import *
 from soldiers import *
 
 
-# remove
-class Square:
-    def __init__(self, x, y, soldier, color, soldier_png):
-        self.x = x
-        self.y = y
-        if soldier is not None:
-            self.soldier = soldier(self, color, soldier_png)
-        else:
-            self.soldier = None
-
-    def set_soldier(self, soldier):
-        self.soldier = soldier
-
-    def get_soldier(self):
-        return self.soldier
-
-
 class Board:
     def __init__(self):
         self.board = []
@@ -27,6 +10,10 @@ class Board:
     def __getitem__(self, board):
         return self.board
 
+    def move(self, cur_row, cur_col, next_row, next_col):
+        if self.board[cur_row][cur_col] is not None:
+            self.board[next_row][next_col], self.board[cur_row][cur_col] = self.board[cur_row][cur_col], None
+
     def draw_squares(self, win):
         win.fill(GREEN)
         for row in range(N):
@@ -34,33 +21,33 @@ class Board:
                 pygame.draw.rect(win, WHITE, (row * SQUARE_SIZE, col * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE))
         for row in range(N):
             for col in range(N):
-                if self.board[row][col].soldier is not None:
-                    image = self.board[row][col].soldier.png
+                if self.board[row][col] is not None:
+                    image = self.board[row][col].png
                     win.blit(image, (col * SQUARE_SIZE, row * SQUARE_SIZE))
 
     def create_board(self):
         board = [[0 for _ in range(N)] for _ in range(N)]
-        board[0][0] = Square(0, 0, Rook, 'black', 'black_rook.png')
-        board[0][1] = Square(0, 1, Knight, 'black', 'black_knight.png')
-        board[0][2] = Square(0, 2, Bishop, 'black', 'black_bishop.png')
-        board[0][3] = Square(0, 3, Queen, 'black', 'black_queen.png')
-        board[0][4] = Square(0, 4, King, 'black', 'black_king.png')
-        board[0][5] = Square(0, 5, Bishop, 'black', 'black_bishop.png')
-        board[0][6] = Square(0, 6, Knight, 'black', 'black_knight.png')
-        board[0][7] = Square(0, 7, Rook, 'black', 'black_rook.png')
+        board[0][0] = Rook(0, 0, 'black', 'black_rook.png')
+        board[0][1] = Knight(0, 1, 'black', 'black_knight.png')
+        board[0][2] = Bishop(0, 2, 'black', 'black_bishop.png')
+        board[0][3] = Queen(0, 3, 'black', 'black_queen.png')
+        board[0][4] = King(0, 4, 'black', 'black_king.png')
+        board[0][5] = Bishop(0, 5, 'black', 'black_bishop.png')
+        board[0][6] = Knight(0, 6, 'black', 'black_knight.png')
+        board[0][7] = Rook(0, 7, 'black', 'black_rook.png')
         for j in range(N):
-            board[1][j] = Square(1, j, Pawn, 'black', 'black_pawn.png')
+            board[1][j] = Pawn(1, j, 'black', 'black_pawn.png')
         for row in range(2, 6):
             for col in range(N):
-                board[row][col] = Square(row, col, None, None, None)
+                board[row][col] = None
         for j in range(N):
-            board[6][j] = Square(6, j, Pawn, 'white', 'white_pawn.png')
-        board[7][0] = Square(0, 0, Rook, 'white', 'white_rook.png')
-        board[7][1] = Square(0, 1, Knight, 'white', 'white_knight.png')
-        board[7][2] = Square(0, 2, Bishop, 'white', 'white_bishop.png')
-        board[7][3] = Square(0, 3, Queen, 'white', 'white_queen.png')
-        board[7][4] = Square(0, 4, King, 'white', 'white_king.png')
-        board[7][5] = Square(0, 5, Bishop, 'white', 'white_bishop.png')
-        board[7][6] = Square(0, 6, Knight, 'white', 'white_knight.png')
-        board[7][7] = Square(0, 7, Rook, 'white', 'white_rook.png')
+            board[6][j] = Pawn(6, j, 'white', 'white_pawn.png')
+        board[7][0] = Rook(7, 0, 'white', 'white_rook.png')
+        board[7][1] = Knight(7, 1, 'white', 'white_knight.png')
+        board[7][2] = Bishop(7, 2, 'white', 'white_bishop.png')
+        board[7][3] = Queen(7, 3, 'white', 'white_queen.png')
+        board[7][4] = King(7, 4, 'white', 'white_king.png')
+        board[7][5] = Bishop(7, 5, 'white', 'white_bishop.png')
+        board[7][6] = Knight(7, 6, 'white', 'white_knight.png')
+        board[7][7] = Rook(7, 7, 'white', 'white_rook.png')
         self.board = board
