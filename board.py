@@ -10,32 +10,24 @@ class Board:
     def __getitem__(self, board):
         return self.board
 
-    # def move(self, cur_row, cur_col, next_row, next_col):
-    #     if self.board[cur_row][cur_col] is not None:
-    #         soldier = self.board[cur_row][cur_col]
-    #         moves = soldier.possible_moves(self.board)
-    #         soldier.row, soldier.col = next_row, next_col
-    #         if (next_row, next_col) in moves:
-    #             if isinstance(soldier, Pawn):
-    #                 if soldier.is_first_move:
-    #                     soldier.is_first_move = False
-    #             self.board[next_row][next_col], self.board[cur_row][cur_col] = self.board[cur_row][cur_col], None
-    #             return True
-    #     return False
-
     def move(self, cur_row, cur_col, next_row, next_col, moves):
         if (next_row, next_col) in moves:
-            if isinstance(self.board[cur_row][cur_col], Pawn):
-                self.board[cur_row][cur_col].is_first_move = False
+            soldier = self.board[cur_row][cur_col]
+            soldier.row, soldier.col = next_row, next_col
+            if isinstance(soldier, Pawn):
+                soldier.is_first_move = False
             self.board[next_row][next_col], self.board[cur_row][cur_col] = self.board[cur_row][cur_col], None
             return True
         return False
 
-    def draw_squares(self, win):
+    @staticmethod
+    def draw_squares(win):
         win.fill(GREEN)
         for row in range(N):
             for col in range(row % 2, N, 2):
                 pygame.draw.rect(win, WHITE, (row * SQUARE_SIZE, col * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE))
+
+    def draw_pieces(self, win):
         for row in range(N):
             for col in range(N):
                 if self.board[row][col] is not None:

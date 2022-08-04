@@ -133,7 +133,21 @@ class King(Soldier):
         super().__init__(row, col, color, png_str)
 
     def possible_moves(self, board):
-        pass
+        row, col, color = self.row, self.col, self.color
+        moves = [(row, col + 1), (row - 1, col + 1), (row - 1, col), (row - 1, col - 1), (row, col - 1),
+                 (row + 1, col - 1), (row + 1, col), (row + 1, col + 1)]
+        mark = []
+        for move in moves:
+            if (move[0] >= N) or (move[0] < 0) or (move[1] >= N) or (move[1] < 0):
+                mark.append(move)
+        moves = [move for move in moves if move not in mark]
+        mark = []
+        for move in moves:
+            if board[move[0]][move[1]] is not None:
+                if board[move[0]][move[1]].color is color:
+                    mark.append(move)
+        moves = [move for move in moves if move not in mark]
+        return moves
 
 
 class Knight(Soldier):
@@ -141,7 +155,21 @@ class Knight(Soldier):
         super().__init__(row, col, color, png_str)
 
     def possible_moves(self, board):
-        pass
+        row, col, color = self.row, self.col, self.color
+        moves = [(row - 1, col - 2), (row - 2, col - 1), (row - 2, col + 1), (row - 1, col + 2), (row + 1, col + 2),
+                 (row + 2, col + 1), (row + 2, col - 1), (row + 1, col - 2)]
+        mark = []
+        for move in moves:
+            if (move[0] >= N) or (move[0] < 0) or (move[1] >= N) or (move[1] < 0):
+                mark.append(move)
+        moves = [move for move in moves if move not in mark]
+        mark = []
+        for move in moves:
+            if board[move[0]][move[1]] is not None:
+                if board[move[0]][move[1]].color is color:
+                    mark.append(move)
+        moves = [move for move in moves if move not in mark]
+        return moves
 
 
 class Queen(Soldier):
@@ -149,7 +177,11 @@ class Queen(Soldier):
         super().__init__(row, col, color, png_str)
 
     def possible_moves(self, board):
-        pass
+        rook = Rook(self.row, self.col, self.color, None)
+        bishop = Bishop(self.row, self.col, self.color, None)
+        moves = rook.possible_moves(board)
+        moves += bishop.possible_moves(board)
+        return moves
 
 
 class Rook(Soldier):
@@ -157,4 +189,42 @@ class Rook(Soldier):
         super().__init__(row, col, color, png_str)
 
     def possible_moves(self, board):
-        pass
+        row, col, color = self.row, self.col, self.color
+        moves = []
+        for i in range(1, 8):
+            if row + i < N:
+                if board[row + i][col] is None:
+                    moves.append((row + i, col))
+                elif board[row + i][col].color is not color:
+                    moves.append((row + i, col))
+                    break
+                elif board[row + i][col].color is color:
+                    break
+        for i in range(1, 8):
+            if row - i >= 0:
+                if board[row - i][col] is None:
+                    moves.append((row - i, col))
+                elif board[row - i][col].color is not color:
+                    moves.append((row - i, col))
+                    break
+                elif board[row - i][col].color is color:
+                    break
+        for i in range(1, 8):
+            if col + i < N:
+                if board[row][col + i] is None:
+                    moves.append((row, col + i))
+                elif board[row][col + i].color is not color:
+                    moves.append((row, col + i))
+                    break
+                elif board[row][col + i].color is color:
+                    break
+        for i in range(1, 8):
+            if col - i >= 0:
+                if board[row][col - i] is None:
+                    moves.append((row, col - i))
+                elif board[row][col - i].color is not color:
+                    moves.append((row, col - i))
+                    break
+                elif board[row][col - i].color is color:
+                    break
+        return moves
