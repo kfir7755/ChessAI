@@ -1,5 +1,6 @@
 from board import *
 from constants import *
+import pygame
 
 
 class Game:
@@ -16,17 +17,22 @@ class Game:
 
     def select(self, row, col):
         if self.selected is not None:
-            print(self.selected)
             cur_row, cur_col = self.selected
-            self.board.move(cur_row, cur_col, row, col)
+            result = self.board.move(cur_row, cur_col, row, col)
             self.selected = None
-        #     result = self.move(row, col)
-        #     if not result:
-        #         self.selected = None
-        #         self.select(row, col)
-        # soldier = self.board[row][col]
+            if not result:
+                self.select(row, col)
         else:
             self.selected = row, col
 
-    def move(self, row, col):
-        return True
+    # def select(self, row, col, moves=None):
+    #     if self.selected is not None:
+    #         cur_row, cur_col = self.selected
+    #         result = self.board.move(cur_row, cur_col, row, col, moves)
+    #         self.selected = None
+    #         if not result:
+    #             self.select(row, col)
+    #     else:
+    #         self.selected = row, col
+    #         if self.board[row][col] is not None:
+    #             moves = self.board[row][col].possible_moves(self.board)

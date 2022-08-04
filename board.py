@@ -10,9 +10,26 @@ class Board:
     def __getitem__(self, board):
         return self.board
 
-    def move(self, cur_row, cur_col, next_row, next_col):
-        if self.board[cur_row][cur_col] is not None:
+    # def move(self, cur_row, cur_col, next_row, next_col):
+    #     if self.board[cur_row][cur_col] is not None:
+    #         soldier = self.board[cur_row][cur_col]
+    #         moves = soldier.possible_moves(self.board)
+    #         soldier.row, soldier.col = next_row, next_col
+    #         if (next_row, next_col) in moves:
+    #             if isinstance(soldier, Pawn):
+    #                 if soldier.is_first_move:
+    #                     soldier.is_first_move = False
+    #             self.board[next_row][next_col], self.board[cur_row][cur_col] = self.board[cur_row][cur_col], None
+    #             return True
+    #     return False
+
+    def move(self, cur_row, cur_col, next_row, next_col, moves):
+        if (next_row, next_col) in moves:
+            if isinstance(self.board[cur_row][cur_col], Pawn):
+                self.board[cur_row][cur_col].is_first_move = False
             self.board[next_row][next_col], self.board[cur_row][cur_col] = self.board[cur_row][cur_col], None
+            return True
+        return False
 
     def draw_squares(self, win):
         win.fill(GREEN)
