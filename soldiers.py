@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 import os
 import pygame
-from constants import N
+from constants import *
 
 
 class Soldier(ABC):
@@ -14,23 +14,41 @@ class Soldier(ABC):
         else:
             self.png = None
 
-    @abstractmethod
-    def possible_moves(self, board):
-        pass
+    # @abstractmethod
+    # def possible_moves(self, board):
+    #     pass
 
 
 class Pawn(Soldier):
     def __init__(self, row, col, color, png_str):
         super().__init__(row, col, color, png_str)
         self.is_first_move = True
+        self.made_normal_move = False
 
-    # def _en_passant(self, board):
+    def en_passant(self, board, last_move):
+        moves = []
+        if last_move is None:
+            return moves
+        b_row, b_col = last_move[0]
+        a_row, a_col = last_move[1]
+        color = self.color
+        last_move_soldier = board[a_row][a_col]
+        if (abs(a_row - b_row) != 2) or not isinstance(last_move_soldier, Pawn):
+            return moves
+        if not last_move_soldier.is_first_move and not last_move_soldier.made_normal_move and self.row == a_row and\
+                abs(a_col-self.col) == 1:
+            if color == 'white':
+                moves.append((a_row-1, a_col))
+            if color == 'black':
+                moves.append((a_row+1, a_col))
+        return moves
 
-    def possible_moves(self, board):
+    def possible_moves(self, board, last_move):
         row, col, color = self.row, self.col, self.color
         mark = []
         if color == 'white':
             moves = [(row - 1, col), (row - 2, col), (row - 1, col + 1), (row - 1, col - 1)]
+            moves += self.en_passant(board, last_move)
             if not self.is_first_move:
                 moves.remove((row - 2, col))
             for move in moves:
@@ -57,6 +75,7 @@ class Pawn(Soldier):
                 moves.remove((row - 2, col))
         elif color == 'black':
             moves = [(row + 1, col + 1), (row + 2, col), (row + 1, col), (row + 1, col - 1)]
+            moves += self.en_passant(board, last_move)
             if not self.is_first_move:
                 moves.remove((row + 2, col))
             for move in moves:

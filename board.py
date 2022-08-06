@@ -7,9 +7,19 @@ class Board:
         self.board = []
         self.selected_piece = None
         self.fallen_king = None
+        self.last_move = None
 
     def __getitem__(self, board):
         return self.board
+
+    def move_en_passant(self, cur_row, cur_col, next_row, next_col):
+        self.board[next_row][next_col], self.board[cur_row][cur_col] = self.board[cur_row][cur_col], None
+        if cur_row > next_row:
+            self.board[next_row + 1][next_col] = None
+        else:
+            self.board[next_row - 1][next_col] = None
+        self.last_move = ((cur_row, cur_col), (next_row, next_col))
+        return True
 
     def move(self, cur_row, cur_col, next_row, next_col, moves):
         if (next_row, next_col) in moves:
@@ -21,10 +31,17 @@ class Board:
                     self.board[cur_row][cur_col] = Queen(next_row, next_col, 'white', 'white_queen.png')
                 if soldier.color == 'black' and next_row == 7:
                     self.board[cur_row][cur_col] = Queen(next_row, next_col, 'black', 'black_queen.png')
+                if self.board[next_row][next_col] is None and next_col != cur_col:
+                    self.move_en_passant(cur_row, cur_col, next_row, next_col)
+                    return True
+                elif (next_row, next_col) != (cur_row - 2, cur_col) and\
+                        (next_row, next_col) != (cur_row + 2, cur_col):
+                    soldier.made_normal_move = True
             if self.board[next_row][next_col] is not None:
                 if isinstance(self.board[next_row][next_col], King):
                     self.fallen_king = self.board[next_row][next_col].color
             self.board[next_row][next_col], self.board[cur_row][cur_col] = self.board[cur_row][cur_col], None
+            self.last_move = ((cur_row, cur_col), (next_row, next_col))
             return True
         return False
 

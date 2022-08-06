@@ -43,7 +43,10 @@ class Game:
             if self.board.board[row][col] is not None:
                 if self.board.board[row][col].color == self.turn:
                     soldier = self.board.board[row][col]
-                    self.moves = soldier.possible_moves(self.board.board)
+                    if not isinstance(soldier, Pawn):
+                        self.moves = soldier.possible_moves(self.board.board)
+                    else:
+                        self.moves = soldier.possible_moves(self.board.board, self.board.last_move)
                 else:
                     self.moves = []
 
