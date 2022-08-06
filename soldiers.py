@@ -24,6 +24,8 @@ class Pawn(Soldier):
         super().__init__(row, col, color, png_str)
         self.is_first_move = True
 
+    # def _en_passant(self, board):
+
     def possible_moves(self, board):
         row, col, color = self.row, self.col, self.color
         mark = []
