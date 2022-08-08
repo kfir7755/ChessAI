@@ -19,7 +19,6 @@ def main():
     clock = pygame.time.Clock()
     run = True
     game = Game(WIN)
-
     while run:
         clock.tick(FPS)
         if game.winner() is not None:
