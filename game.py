@@ -1,5 +1,5 @@
 from soldiers import *
-from copy import copy
+import copy
 
 
 class Game:
@@ -14,6 +14,9 @@ class Game:
         self.all_possible_moves = []
         self.selected_piece = None
         self.last_move = None
+        self.moveLog = []
+        self.castling_queen_side = False
+        self.castling_king_side = False
         self.threatening_moves_available = []
         self.white_king_location = (7, 4)
         self.black_king_location = (0, 4)
@@ -57,6 +60,7 @@ class Game:
                 self.moves = []
                 temp = self.turn
                 self.turn = 'black' if temp == 'white' else 'white'
+                self.can_castling()
                 self.threatening_moves_check()
                 self.calc_all_possible_moves()
         else:
@@ -64,10 +68,13 @@ class Game:
             if self.board[row][col] is not None:
                 if self.board[row][col].color == self.turn:
                     soldier = self.board[row][col]
-                    if not isinstance(soldier, Pawn):
-                        self.moves = soldier.possible_moves(self.board)
-                    else:
+                    if isinstance(soldier, Pawn):
                         self.moves = soldier.possible_moves(self.board, self.last_move)
+                    elif isinstance(soldier, King):
+                        self.moves = soldier.possible_moves(self.board, self.castling_queen_side,
+                                                            self.castling_king_side)
+                    else:
+                        self.moves = soldier.possible_moves(self.board)
                     self.fix_moves()
                 else:
                     self.moves = []
@@ -76,11 +83,19 @@ class Game:
         if (cur_row, cur_col, next_row, next_col) in self.moves:
             soldier = self.board[cur_row][cur_col]
             soldier.row, soldier.col = next_row, next_col
+            soldier_moved = copy.copy(self.board[cur_row][cur_col])
+            soldier_eaten = copy.copy(self.board[next_row][next_col])
+            is_pawn_promotion = False
+            self.last_move = (cur_row, cur_col, next_row, next_col)
             if isinstance(soldier, Pawn):
                 soldier.is_first_move = False
                 if soldier.color == 'white' and next_row == 0:
+                    is_pawn_promotion = True
+                    self.moveLog.append((cur_row, cur_col, next_row, next_col, soldier_moved, soldier_eaten))
                     self.board[cur_row][cur_col] = Queen(next_row, next_col, 'white', 'white_queen.png')
                 if soldier.color == 'black' and next_row == 7:
+                    is_pawn_promotion = True
+                    self.moveLog.append((cur_row, cur_col, next_row, next_col, soldier_moved, soldier_eaten))
                     self.board[cur_row][cur_col] = Queen(next_row, next_col, 'black', 'black_queen.png')
                 if self.board[next_row][next_col] is None and next_col != cur_col:
                     self.move_en_passant(cur_row, cur_col, next_row, next_col)
@@ -88,14 +103,70 @@ class Game:
                 elif (next_row, next_col) != (cur_row - 2, cur_col) and \
                         (next_row, next_col) != (cur_row + 2, cur_col):
                     soldier.made_normal_move = True
+            if isinstance(soldier, King) or isinstance(soldier, Rook):
+                soldier.has_moved = True
             if (cur_row, cur_col) == self.white_king_location:
                 self.white_king_location = next_row, next_col
             if (cur_row, cur_col) == self.black_king_location:
                 self.black_king_location = next_row, next_col
+            if isinstance(soldier, King):
+                if abs(cur_col - next_col) > 1:
+                    self.move_castling(cur_row, cur_col, next_row, next_col)
+                    return True
+            if not is_pawn_promotion:
+                self.moveLog.append((cur_row, cur_col, next_row, next_col, soldier_moved, soldier_eaten))
             self.board[next_row][next_col], self.board[cur_row][cur_col] = self.board[cur_row][cur_col], None
-            self.last_move = (cur_row, cur_col, next_row, next_col)
             return True
         return False
+
+    def undoMove(self):
+        if len(self.moveLog) != 0:
+            self.turn = 'white' if self.turn == 'black' else 'black'
+            move = self.moveLog.pop()
+            if len(self.moveLog) != 0:
+                self.last_move = self.moveLog[-1]
+            else:
+                self.last_move = None
+            if move[-1] == 'castling':
+                self.undo_castling(move)
+            elif move[-1] == 'en_passant':
+                self.undo_en_passant(move)
+            else:
+                self.board[move[0]][move[1]] = move[4]
+                self.board[move[2]][move[3]] = move[5]
+                self.board[move[0]][move[1]].row = move[0]
+                self.board[move[0]][move[1]].col = move[1]
+
+    def undo_castling(self, move):
+        self.board[move[0]][move[1]] = self.board[move[2]][move[3]]
+        self.board[move[0]][move[1]].has_moved = False
+        if self.board[move[0]][move[1]].color == 'white':
+            self.white_king_location = move[0], move[1]
+        else:
+            self.black_king_location = move[0], move[1]
+        self.board[move[0]][move[1]].row = move[0]
+        self.board[move[0]][move[1]].col = move[1]
+        self.board[move[2]][move[3]] = None
+        if move[3] > move[1]:
+            self.board[move[0]][7] = self.board[move[0]][move[1] + 1]
+            self.board[move[0]][7].row = move[0]
+            self.board[move[0]][7].col = 7
+            self.board[move[0]][7].has_moved = False
+            self.board[move[0]][move[1] + 1] = None
+        else:
+            self.board[move[0]][0] = self.board[move[0]][move[1] - 1]
+            self.board[move[0]][0].row = move[0]
+            self.board[move[0]][0].col = 0
+            self.board[move[0]][0].has_moved = False
+            self.board[move[0]][move[1] - 1] = None
+        self.can_castling()
+
+    def undo_en_passant(self, move):
+        self.board[move[0]][move[1]] = self.board[move[2]][move[3]]
+        self.board[move[0]][move[3]] = move[4]
+        self.board[move[2]][move[3]] = None
+        self.board[move[0]][move[1]].row = move[0]
+        self.board[move[0]][move[1]].col = move[1]
 
     def fix_moves(self):
         king_loc = self.white_king_location if self.turn == 'white' else self.black_king_location
@@ -114,18 +185,29 @@ class Game:
                     self.white_king_location = king_move
                 else:
                     self.black_king_location = king_move
+                soldier = copy.copy(self.board[move[2]][move[3]])
+                self.board[move[2]][move[3]], self.board[move[0]][move[1]] = self.board[move[0]][move[1]], None
                 self.threatening_moves_check()
                 if len(self.threatening_moves_available) == 0:
+                    self.board[move[0]][move[1]], self.board[move[2]][move[3]] = self.board[move[2]][move[3]], soldier
+                    if self.turn == 'white':
+                        self.white_king_location = king_loc
+                    else:
+                        self.black_king_location = king_loc
                     valid_moves.append(move)
                     continue
-            soldier = copy(self.board[move[2]][move[3]])
-            self.board[move[2]][move[3]], self.board[move[0]][move[1]] = self.board[move[0]][move[1]], None
+            if not isKing:
+                soldier = copy.copy(self.board[move[2]][move[3]])
+                self.board[move[2]][move[3]], self.board[move[0]][move[1]] = self.board[move[0]][move[1]], None
             before_last_move = self.last_move
             self.last_move = move
             for threatening_move in self.threatening_moves_available:
                 if isinstance(self.board[threatening_move[0]][threatening_move[1]], Pawn):
                     possible_moves = self.board[threatening_move[0]][threatening_move[1]]. \
                         possible_moves(self.board, self.last_move)
+                elif isinstance(self.board[threatening_move[0]][threatening_move[1]], King):
+                    self.moves = self.board[threatening_move[0]][threatening_move[1]]. \
+                        possible_moves(self.board, self.castling_queen_side, self.castling_king_side)
                 else:
                     possible_moves = self.board[threatening_move[0]][threatening_move[1]].possible_moves(self.board)
                 valid = True
@@ -160,13 +242,9 @@ class Game:
                     self.black_king_location = king_move
                 self.threatening_moves_check()
             if len(self.threatening_moves_available) == 0:
-                if self.turn == 'white':
-                    self.white_king_location = king_loc
-                else:
-                    self.black_king_location = king_loc
                 valid_moves.append(move)
                 continue
-            soldier = copy(self.board[move[2]][move[3]])
+            soldier = copy.copy(self.board[move[2]][move[3]])
             self.board[move[2]][move[3]], self.board[move[0]][move[1]] = self.board[move[0]][move[1]], None
             before_last_move = self.last_move
             self.last_move = move
@@ -174,6 +252,9 @@ class Game:
                 if isinstance(self.board[threatening_move[0]][threatening_move[1]], Pawn):
                     possible_moves = self.board[threatening_move[0]][threatening_move[1]]. \
                         possible_moves(self.board, self.last_move)
+                elif isinstance(self.board[threatening_move[0]][threatening_move[1]], King):
+                    self.moves = self.board[threatening_move[0]][threatening_move[1]]. \
+                        possible_moves(self.board, self.castling_queen_side, self.castling_king_side)
                 else:
                     possible_moves = self.board[threatening_move[0]][threatening_move[1]].possible_moves(self.board)
                 valid = True
@@ -182,12 +263,12 @@ class Game:
                         valid = False
                 if valid:
                     valid_moves.append(move)
-                if isKing:
-                    self.threatening_moves_available = temp
-                    if self.turn == 'white':
-                        self.white_king_location = king_loc
-                    else:
-                        self.black_king_location = king_loc
+            if isKing:
+                self.threatening_moves_available = temp
+                if self.turn == 'white':
+                    self.white_king_location = king_loc
+                else:
+                    self.black_king_location = king_loc
             self.board[move[0]][move[1]], self.board[move[2]][move[3]] = self.board[move[2]][move[3]], soldier
             self.last_move = before_last_move
         self.all_possible_moves = valid_moves
@@ -200,8 +281,13 @@ class Game:
             if self.board[square[0]][square[1]] is not None:
                 if self.board[square[0]][square[1]].color != self.turn:
                     soldier = self.board[square[0]][square[1]]
-                    possible_moves = soldier.possible_moves(self.board, self.last_move) if isinstance(soldier, Pawn) \
-                        else soldier.possible_moves(self.board)
+                    if isinstance(soldier, Pawn):
+                        possible_moves = soldier.possible_moves(self.board, self.last_move)
+                    elif isinstance(soldier, King):
+                        possible_moves = soldier.possible_moves(self.board, self.castling_queen_side,
+                                                                self.castling_king_side)
+                    else:
+                        possible_moves = soldier.possible_moves(self.board)
                     for move in possible_moves:
                         if (move[2], move[3]) == king_loc:
                             self.threatening_moves_available.append(move)
@@ -209,11 +295,20 @@ class Game:
     def move_en_passant(self, cur_row, cur_col, next_row, next_col):
         self.board[next_row][next_col], self.board[cur_row][cur_col] = self.board[cur_row][cur_col], None
         if cur_row > next_row:
+            self.moveLog.append((*self.last_move, copy.copy(self.board[next_row + 1][next_col]), 'en_passant'))
             self.board[next_row + 1][next_col] = None
         else:
+            self.moveLog.append((*self.last_move, copy.copy(self.board[next_row - 1][next_col]), 'en_passant'))
             self.board[next_row - 1][next_col] = None
-        self.last_move = (cur_row, cur_col, next_row, next_col)
         return True
+
+    def move_castling(self, cur_row, cur_col, next_row, next_col):
+        self.board[next_row][next_col], self.board[cur_row][cur_col] = self.board[cur_row][cur_col], None
+        if cur_col < next_col:
+            self.board[next_row][next_col - 1], self.board[cur_row][7] = self.board[cur_row][7], None
+        if cur_col > next_col:
+            self.board[next_row][next_col + 1], self.board[cur_row][0] = self.board[cur_row][0], None
+        self.moveLog.append((*self.last_move, 'castling'))
 
     def calc_all_possible_moves(self):
         self.all_possible_moves = []
@@ -223,11 +318,79 @@ class Game:
                     if self.board[row][col].color == self.turn:
                         if isinstance(self.board[row][col], Pawn):
                             self.all_possible_moves += self.board[row][col].possible_moves(self.board, self.last_move)
+                        elif isinstance(self.board[row][col], King):
+                            self.all_possible_moves += self.board[row][col].possible_moves(self.board,
+                                                                                           self.castling_queen_side,
+                                                                                           self.castling_king_side)
                         else:
                             self.all_possible_moves += self.board[row][col].possible_moves(self.board)
         self.fix_all_possible_moves()
         if len(self.all_possible_moves) == 0:
             self.all_possible_moves = None
+
+    def can_castling(self):
+        king_loc = self.white_king_location if self.turn == 'white' else self.black_king_location
+        king_expected = (0, 4) if self.turn == 'black' else (7, 4)
+        rooks_loc = (0, 0, 0, 7) if self.turn == 'black' else (7, 0, 7, 7)
+        castling_queen_side, castling_king_side = True, True
+        if king_loc == king_expected:
+            if not self.board[king_loc[0]][king_loc[1]].has_moved:
+                if isinstance(self.board[rooks_loc[0]][rooks_loc[1]], Rook):
+                    if self.board[rooks_loc[0]][rooks_loc[1]].has_moved:
+                        castling_queen_side = False
+                else:
+                    castling_queen_side = False
+                if isinstance(self.board[rooks_loc[2]][rooks_loc[3]], Rook):
+                    if self.board[rooks_loc[2]][rooks_loc[3]].has_moved:
+                        castling_king_side = False
+                else:
+                    castling_king_side = False
+            if castling_queen_side:
+                for i in range(1, 4):
+                    if self.board[king_loc[0]][i] is not None:
+                        castling_queen_side = False
+            if castling_king_side:
+                for i in range(5, 7):
+                    if self.board[king_loc[0]][i] is not None:
+                        castling_king_side = False
+            if len(self.threatening_moves_available) == 0:
+                if castling_king_side:
+                    for i in range(5, 7):
+                        if self.turn == 'black':
+                            self.black_king_location = 0, i
+                        else:
+                            self.white_king_location = 7, i
+                        self.board[king_loc[0]][i], self.board[king_loc[0]][i - 1] = self.board[king_loc[0]][
+                                                                                         i - 1], None
+                        self.threatening_moves_check()
+                        if len(self.threatening_moves_available) != 0:
+                            castling_king_side = False
+                    self.board[king_loc[0]][4], self.board[king_loc[0]][6] = self.board[king_loc[0]][6], None
+                    if self.turn == 'black':
+                        self.black_king_location = 0, 4
+                    else:
+                        self.white_king_location = 7, 4
+                    self.threatening_moves_available = []
+                if castling_queen_side:
+                    for i in range(1, 4):
+                        if self.turn == 'black':
+                            self.black_king_location = 0, i
+                        else:
+                            self.white_king_location = 7, i
+                        self.board[king_loc[0]][i], self.board[king_loc[0]][i - 1] = self.board[king_loc[0]][
+                                                                                         i - 1], None
+                        self.threatening_moves_check()
+                        if len(self.threatening_moves_available) != 0:
+                            castling_king_side = False
+                    self.board[king_loc[0]][4], self.board[king_loc[0]][3] = self.board[king_loc[0]][3], None
+                    if self.turn == 'black':
+                        self.black_king_location = 0, 4
+                    else:
+                        self.white_king_location = 7, 4
+                    self.threatening_moves_available = []
+                self.castling_queen_side, self.castling_king_side = castling_queen_side, castling_king_side
+        else:
+            self.castling_queen_side, self.castling_king_side = False, False
 
     def draw_circles(self):
         cur_row, cur_col = self.selected
@@ -307,3 +470,58 @@ class Game:
         board[7][6] = Knight(7, 6, 'white', 'white_knight.png')
         board[7][7] = Rook(7, 7, 'white', 'white_rook.png')
         self.board = board
+
+    def move_for_test(self, cur_row, cur_col, next_row, next_col):
+        soldier = self.board[cur_row][cur_col]
+        soldier.row, soldier.col = next_row, next_col
+        soldier_moved = copy.copy(self.board[cur_row][cur_col])
+        soldier_eaten = copy.copy(self.board[next_row][next_col])
+        is_pawn_promotion = False
+        self.last_move = (cur_row, cur_col, next_row, next_col)
+        if isinstance(soldier, Pawn):
+            soldier.is_first_move = False
+            if soldier.color == 'white' and next_row == 0:
+                is_pawn_promotion = True
+                self.moveLog.append((cur_row, cur_col, next_row, next_col, soldier_moved, soldier_eaten))
+                self.board[cur_row][cur_col] = Queen(next_row, next_col, 'white', 'white_queen.png')
+            if soldier.color == 'black' and next_row == 7:
+                is_pawn_promotion = True
+                self.moveLog.append((cur_row, cur_col, next_row, next_col, soldier_moved, soldier_eaten))
+                self.board[cur_row][cur_col] = Queen(next_row, next_col, 'black', 'black_queen.png')
+            if self.board[next_row][next_col] is None and next_col != cur_col:
+                self.move_en_passant(cur_row, cur_col, next_row, next_col)
+                self.turn = 'white' if self.turn == 'black' else 'black'
+                self.calc_all_possible_moves()
+                return True
+            elif (next_row, next_col) != (cur_row - 2, cur_col) and \
+                    (next_row, next_col) != (cur_row + 2, cur_col):
+                soldier.made_normal_move = True
+        if isinstance(soldier, King) or isinstance(soldier, Rook):
+            soldier.has_moved = True
+        if (cur_row, cur_col) == self.white_king_location:
+            self.white_king_location = next_row, next_col
+        if (cur_row, cur_col) == self.black_king_location:
+            self.black_king_location = next_row, next_col
+        if isinstance(soldier, King):
+            if abs(cur_col - next_col) > 1:
+                self.move_castling(cur_row, cur_col, next_row, next_col)
+                self.turn = 'white' if self.turn == 'black' else 'black'
+                self.calc_all_possible_moves()
+                return True
+        if not is_pawn_promotion:
+            self.moveLog.append((cur_row, cur_col, next_row, next_col, soldier_moved, soldier_eaten))
+        self.board[next_row][next_col], self.board[cur_row][cur_col] = self.board[cur_row][cur_col], None
+        self.turn = 'white' if self.turn == 'black' else 'black'
+        self.calc_all_possible_moves()
+
+    def move_generation_test(self, depth):
+        if depth == 0:
+            return 1
+        self.calc_all_possible_moves()
+        number_of_positions = 0
+        for move in self.all_possible_moves:
+            self.move_for_test(*move)
+            number_of_positions += self.move_generation_test(depth - 1)
+            self.undoMove()
+        return number_of_positions
+

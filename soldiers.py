@@ -35,19 +35,20 @@ class Pawn(Soldier):
         last_move_soldier = board[a_row][a_col]
         if (abs(a_row - b_row) != 2) or not isinstance(last_move_soldier, Pawn):
             return moves
-        if not last_move_soldier.is_first_move and not last_move_soldier.made_normal_move and self.row == a_row and\
-                abs(a_col-self.col) == 1:
+        if not last_move_soldier.is_first_move and not last_move_soldier.made_normal_move and self.row == a_row and \
+                abs(a_col - self.col) == 1:
             if color == 'white':
-                moves.append((self.row, self.col, a_row-1, a_col))
+                moves.append((self.row, self.col, a_row - 1, a_col))
             if color == 'black':
-                moves.append((self.row, self.col, a_row+1, a_col))
+                moves.append((self.row, self.col, a_row + 1, a_col))
         return moves
 
     def possible_moves(self, board, last_move):
         row, col, color = self.row, self.col, self.color
         mark = []
         if color == 'white':
-            moves = [(row, col, row - 1, col), (row, col, row - 2, col), (row, col, row - 1, col + 1), (row, col, row - 1, col - 1)]
+            moves = [(row, col, row - 1, col), (row, col, row - 2, col), (row, col, row - 1, col + 1),
+                     (row, col, row - 1, col - 1)]
             moves += self.en_passant(board, last_move)
             if not self.is_first_move:
                 moves.remove((row, col, row - 2, col))
@@ -61,7 +62,7 @@ class Pawn(Soldier):
             if (row, col, row - 2, col) in moves:
                 if board[row - 2][col] is not None:
                     moves.remove((row, col, row - 2, col))
-            if (row, col,row - 1, col + 1) in moves:
+            if (row, col, row - 1, col + 1) in moves:
                 if board[row - 1][col + 1] is None:
                     moves.remove((row, col, row - 1, col + 1))
                 elif board[row - 1][col + 1].color == 'white':
@@ -74,7 +75,8 @@ class Pawn(Soldier):
             if (row, col, row - 2, col) in moves and (row, col, row - 1, col) not in moves:
                 moves.remove((row, col, row - 2, col))
         elif color == 'black':
-            moves = [(row, col, row + 1, col + 1), (row, col, row + 2, col), (row, col, row + 1, col), (row, col, row + 1, col - 1)]
+            moves = [(row, col, row + 1, col + 1), (row, col, row + 2, col), (row, col, row + 1, col),
+                     (row, col, row + 1, col - 1)]
             moves += self.en_passant(board, last_move)
             if not self.is_first_move:
                 moves.remove((row, col, row + 2, col))
@@ -100,10 +102,6 @@ class Pawn(Soldier):
                     moves.remove((row, col, row + 1, col - 1))
             if (row, col, row + 2, col) in moves and (row, col, row + 1, col) not in moves:
                 moves.remove((row, col, row + 2, col))
-        # if check:
-        #     # need to make a mark, to remove 1 after 1
-        #     for move in moves:
-        # #         if still threatening, remove it
         return moves
 
 
@@ -156,8 +154,9 @@ class Bishop(Soldier):
 class King(Soldier):
     def __init__(self, row, col, color, png_str):
         super().__init__(row, col, color, png_str)
+        self.has_moved = False
 
-    def possible_moves(self, board):
+    def possible_moves(self, board, castling_queen_side, castling_king_side):
         row, col, color = self.row, self.col, self.color
         moves = [(row, col, row, col + 1), (row, col, row - 1, col + 1), (row, col, row - 1, col),
                  (row, col, row - 1, col - 1), (row, col, row, col - 1),
@@ -173,6 +172,10 @@ class King(Soldier):
                 if board[move[2]][move[3]].color is color:
                     mark.append(move)
         moves = [move for move in moves if move not in mark]
+        if castling_queen_side:
+            moves.append((row, col, row, col - 2))
+        if castling_king_side:
+            moves.append((row, col, row, col + 2))
         return moves
 
 
@@ -214,6 +217,7 @@ class Queen(Soldier):
 class Rook(Soldier):
     def __init__(self, row, col, color, png_str):
         super().__init__(row, col, color, png_str)
+        self.has_moved = False
 
     def possible_moves(self, board):
         row, col, color = self.row, self.col, self.color
